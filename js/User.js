@@ -1,18 +1,21 @@
 define(['jquery', 'backbone', 'amplify', 'Channel', 'Channels'], function($, Backbone, amplify, Channel, Channels) {
     "use strict";
     return Backbone.Model.extend({
+        resourceId: 'user.profile',
+
         defaults: {
             key: 'default',
             author: '',
             title: '',
             linkedChannels: null, //Channels
             links: [],
-            loaded: false
+            loaded: false,
+            processed: false
         },
 
         load: function() {
             var self = this;
-            amplify.request('user.profile', {
+            amplify.request(this.resourceId, {
                 user: this.id
             },function(data, status) {
                 if (status === 'success') {
@@ -59,9 +62,9 @@ define(['jquery', 'backbone', 'amplify', 'Channel', 'Channels'], function($, Bac
                 var $link = $(this).find('.yt-uix-tile-link');
                 var href = $link.attr('href');
                 var channel = new Channel({
+                    id: href.substr(href.lastIndexOf('/') + 1),
                     name: $link.text(),
                     link: href,
-                    username: href.substr(href.lastIndexOf('/') + 1),
                     subscribers: $(this).find('.subscriber-count').find('strong').text()
                 });
                 linkedChannels.add(channel);
