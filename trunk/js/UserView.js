@@ -1,4 +1,4 @@
-define(['jquery', 'backbone', 'd3', 'User', 'Channels'], function($, Backbone, d3, User, Channels) {
+define(['jquery', 'underscore', 'backbone', 'd3', 'User', 'Channels'], function($, _, Backbone, d3, User, Channels) {
     "use strict";
     return Backbone.View.extend({
         width: '100%',
@@ -13,9 +13,47 @@ define(['jquery', 'backbone', 'd3', 'User', 'Channels'], function($, Backbone, d
 
         },
 
+        getNextUserId: function(){
+            var
+                nextUserId = null,
+
+                users = this.collection,
+
+                loadedUsers = users.where({
+                    loaded: true,
+                    processed: false
+                });
+
+            if(loadedUsers.length){
+                _.find(loadedUsers, function(loadedUser){
+                    if(loadedUser.has('linkedChannels')){
+                        var linkedChannels = loadedUser.get('linkedChannels');
+                        linkedChannels.find(function(linkedChannel){
+                            var user = users.where({
+                                id: linkedChannel.id
+                            });
+                            if(!user.length){
+                              nextUserId = linkedChannel.id;
+                              return true;
+                            }
+                        }, this);
+                        if(!nextUserId){
+                            loadedUser.set('processed', true);
+                            loadedUsers.remove(loadedUser, {silent:true});
+                        }else{
+                            return true;
+                        }
+                    }
+                }, this);
+            }
+            return nextUserId;
+        },
+
         render: function() {
             console.log('rendering users : %o',this.collection.models);
-            var linkedChannels = new Channels(), nextLinkedChannelUser = null;
+            var
+                linkedChannels = new Channels(),
+                nextUserId = null;
 
             this.collection.each(function(user, index){
                 var userLinkedChannels = user.get('linkedChannels');
@@ -23,18 +61,11 @@ define(['jquery', 'backbone', 'd3', 'User', 'Channels'], function($, Backbone, d
                 linkedChannels.add(userLinkedChannels.toJSON(),{silent:true});
             });
 
-            //nextLinkedChannelUser = (this.collection.last().get('linkedChannels') || [''])[0];
-
-            //@todo remove next if. testing only. use the above commented line
-            nextLinkedChannelUser = linkedChannels.at(1);
-
-
-            console.log('linkedChannels : %o', linkedChannels);
-            console.log('nextLinkedChannelUser : %o', nextLinkedChannelUser);
+            nextUserId = this.getNextUserId();
+            console.warn('next user id : %o', nextUserId);
 
             var content = this.container.selectAll('circle').data(linkedChannels.models, function(linkedChannel, index) {
-                return linkedChannel.get('username');
-                //username is used as key for the data
+                return linkedChannel.id;
             });
 
             content.enter().append('circle').attr('cx', function(d, i) {
@@ -47,17 +78,16 @@ define(['jquery', 'backbone', 'd3', 'User', 'Channels'], function($, Backbone, d
                 return 'rgb(' + parseInt(255 - 100 * Math.random(),10) + ',' + parseInt(255 - 100 * Math.random(),10) + ',' + parseInt(255 - 100 * Math.random(),10) + ')';
             });
 
-            console.warn('adding user %o - %o', nextLinkedChannelUser, this.collection.length);
-            if(nextLinkedChannelUser){
+            if(nextUserId){
                 var nextUser = new User({
-                    id : nextLinkedChannelUser.get('username')
+                    id : nextUserId
                 });
+                console.warn('adding user %o - %o', nextUser, this.collection.length);
                 this.collection.add(nextUser);
-                if(this.collection.length === 2){
+                if(this.collection.length <= 7){
                     console.log('calling next profile');
                     nextUser.load();
                 }
-
             }
 
             return this;
