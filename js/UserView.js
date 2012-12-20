@@ -14,6 +14,7 @@ define(['jquery', 'backbone', 'd3', 'User', 'Channels'], function($, Backbone, d
         },
 
         render: function() {
+            console.log('rendering users : %o',this.collection.models);
             var linkedChannels = new Channels(), nextLinkedChannelUser = null;
 
             this.collection.each(function(user, index){

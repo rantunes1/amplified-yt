@@ -1,9 +1,6 @@
 define(['jquery', 'backbone', 'amplify', 'Channel', 'Channels'], function($, Backbone, amplify, Channel, Channels) {
     "use strict";
     return Backbone.Model.extend({
-
-        baseURL: 'http://gdata.youtube.com/feeds/api',
-
         defaults: {
             key: 'default',
             author: '',
@@ -13,37 +10,16 @@ define(['jquery', 'backbone', 'amplify', 'Channel', 'Channels'], function($, Bac
             loaded: false
         },
 
-        initialize: function() {
-            this.registerDecoders();
-            this.registerRequests();
-        },
-
-        registerDecoders: function() {
+        load: function() {
             var self = this;
-
-            amplify.request.decoders.userprofile = function(data, status, xhr) {
+            amplify.request('user.profile', {
+                user: this.id
+            },function(data, status) {
                 if (status === 'success') {
                     self.setUserProfile(data);
                 } else {
-                    self.trigger('user.profile.error', xhr.responseText, xhr.status, xhr.statusText);
+                    self.trigger('user.profile.error', data, status);
                 }
-            };
-        },
-
-        registerRequests: function() {
-            amplify.request.define('user.profile', 'ajax', {
-                url: this.baseURL + '/users/{user}?alt=json',
-                dataType: 'json',
-                data: {
-                    user: this.get('key')
-                },
-                decoder: 'userprofile'
-            });
-        },
-
-        load: function() {
-            amplify.request('user.profile', {
-                user: this.id
             });
         },
 
@@ -82,7 +58,7 @@ define(['jquery', 'backbone', 'amplify', 'Channel', 'Channels'], function($, Bac
             $connnectedChannelsList.find('li').each(function() {
                 var $link = $(this).find('.yt-uix-tile-link');
                 var href = $link.attr('href');
-                 var channel = new Channel({
+                var channel = new Channel({
                     name: $link.text(),
                     link: href,
                     username: href.substr(href.lastIndexOf('/') + 1),
