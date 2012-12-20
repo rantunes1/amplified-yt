@@ -31,8 +31,11 @@ require.config({
     }
 });
 
-require(['User', 'Users', 'UserView'], function(User, Users, UserView) {
+require(['requests', 'User', 'Users', 'UserView'], function(Requests, User, Users, UserView) {
     "use strict";
+
+    Requests.register();
+
     var firstUser = new User({
         id : 'showaleitao'
     });
